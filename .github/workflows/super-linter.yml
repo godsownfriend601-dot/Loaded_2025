@@ -1,29 +1,32 @@
-# This workflow executes several linters on changed files based on languages used in your code base whenever
-# you push a code or open a pull request.
-#
-# You can adjust the behavior by modifying this file.
-# For more information, see:
-# https://github.com/github/super-linter
-name: Lint Code Base
+name: Lint Python Code
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
-jobs:
-  run-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          # Full git history is needed to get a proper list of changed files within `super-linter`
-          fetch-depth: 0
+    paths:
+      - '**/*.py'  # Trigger workflow only when Python files change
 
-      - name: Lint Code Base
-        uses: github/super-linter@v4
-        env:
-          VALIDATE_ALL_CODEBASE: true
-          DEFAULT_BRANCH: "main"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+jobs:
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Get changed Python files
+        id: get_changed_files
+        uses: tj-actions/changed-files@v35
+        with:
+          files: '**/*.py'
+
+      - name: Run pylint
+        if: steps.get_changed_files.outputs.any_changed == 'true'
+        uses: dciborow/action-pylint@0.1.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          glob_pattern: ${{ steps.get_changed_files.outputs.all_changed_files }}
+          level: warning
+          filter_mode: added
+          fail_on_error: true
